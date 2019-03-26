@@ -1,0 +1,203 @@
+---
+title: "Extract from pdf - cruise ship schedule"
+author: "Martin Monkman"
+date: "24/03/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Victoria Cruise schedule: http://www.victoriacruise.ca/cruise-schedule/current-season
+
+Webpage can't sort of filter
+
+The PDF file has more data (where the ship came from and its next port)
+
+
+## Extract the data from the PDF file
+
+pdftools
+https://ropensci.org/blog/2016/03/01/pdftools-and-jeroen/
+
+tabulizer
+
+```{r}
+
+library(pdftools)
+
+```
+
+
+
+
+```{r}
+
+#download.file("http://www.victoriacruise.ca/sites/default/files/2019_ogden_point_cruise_schedule-03-21-2019.PDF",
+#              "victoriacruise_2019.PDF")
+
+vc_text <- pdf_text("2019_ogden_point_cruise_ship_schedule.PDF")
+
+```
+
+
+This creates an object `vc_text`, which is a list of 10 items--one for each page in the original PDF file. Let's look at page one:
+
+```{r}
+
+vc_text[1]
+
+```
+
+
+Pull it apart using regex and the **stringr** package
+
+https://cran.r-project.org/web/packages/stringr/vignettes/stringr.html
+
+Since we are going to be looking for the string "\r\n" -- a combination of carriage return "\r" and line return "\n" -- we need to puzzle through how R uses regular expressions; https://cran.r-project.org/web/packages/stringr/vignettes/regular-expressions.html
+
+Rather than look for the explicit text strings, we can use the function `regex("\u000D\u000A")` will find both the carriage and line returns.
+
+```{r}
+
+library(stringr)
+library(tidyr)
+
+testtext <- vc_text[1]
+testtext
+
+str_detect(testtext, regex("\u000D\u000A"))
+
+```
+
+
+### some string and vector utilities
+
+https://stackoverflow.com/questions/46583363/string-splitting-a-dataframe-with-a-vector-as-the-pattern-in-r
+
+https://stringr.tidyverse.org/reference/str_split.html 
+
+https://stackoverflow.com/questions/652136/how-can-i-remove-an-element-from-a-list
+
+
+
+Now that we've confirmed that we can find the carriage and line returns, we can split the page using `stringr::str_split()`, which results in one list per line. Our new object `texttext_split` is a list of lists...
+
+...for more on how to parse these, see the chapter [Vectors](https://r4ds.had.co.nz/vectors.html) in the book [_R for Data Science_](https://r4ds.had.co.nz/) by Garrett Grolemund and Hadley Wickham.
+
+```{r}
+
+str_split(testtext, regex("\u000D\u000A"))
+
+# regex is the default -- can omit 
+testtext_split <- str_split(testtext, "\u000D\u000A")
+
+# use index to access specific rows
+testtext_split[1]                    # pulls list 
+testtext_split[[1]]                  # pulls all the items from the list
+testtext_split[[1]][1]               # pulls 1st item from list
+
+testtext_split[[1]][1:5]             # pulls range from list
+
+testtext_split[[1]][-(1:5)]          # removes range from list
+
+```
+
+
+## Tidying the data
+
+Our goal is a tidy data frame (or [tibble](https://tibble.tidyverse.org/)) with one observation (ship visit) per row, and the various characteristics of that visit (date, origin, etc.) in each column. At the moment, we've got two untidy aspects to deal with:
+
+- There is superfluous page header and footer material on each of the 10 PDF pages; this needs to be stripped out.
+
+- Each row is currently one list per line; these need to be separated into each of the variables.
+
+
+First, create a split version of the full file, using the same appoach we used earlier.
+
+
+```{r}
+vc_text_split <- str_split(vc_text, "\u000D\u000A")
+```
+
+Now we have a list `vc_text_split` that has 10 items, each with multiple lists within it. 
+
+
+### Remove superfluous rows
+
+We will start by looking at the first 6 rows of pages 1, 2, and 10 to compare their structure.
+
+```{r}
+
+vc_text_split[[1]][1:6]   
+vc_text_split[[2]][1:6]
+vc_text_split[[10]][1:6]  
+
+```
+
+Based on the first page, the first 5 rows are the header, and row 6 is the variable names. Let's see if that holds true for page two.
+
+Page two and three differ from page one, having one less line before the variable headings begin.
+
+
+
+```{r}
+
+
+for (i in 2:10){
+  print(
+  vc_text_split[[i]][1:4]
+  )
+}
+
+
+
+```
+
+
+And the bottom 4 rows is the closing details on the page. 
+
+The last four rows of the page: 
+
+* need to write a function, since the length() and dplyr::last() functions don't support arithmetic. 
+
+
+```{r}
+
+length(vc_text_split)
+
+last_x_line_fun <- function(vect, line_nums){
+  vic_vec_length <- length(vic_vec)
+  last_x_line <- vic_vec_length - x + 1
+  vc_text_split[[i]][last_x_line:vic_vec_length]
+}
+
+i = 2
+last_x_line_fun(vc_text_split[i], 4)
+
+for (i in 1:10){
+  print(
+  last_x_line_fun(vc_text_split[i], 4)
+  )
+}
+
+
+```
+
+
+
+
+
+
+
+### References
+
+https://medium.com/@CharlesBordet/how-to-extract-and-clean-data-from-pdf-files-in-r-da11964e252e
+
+https://www.r-bloggers.com/how-to-extract-data-from-a-pdf-file-with-r/
+
+
+tabulizer -- R package to pull tables from pdfs (seems a bit finicky)
+https://github.com/ropensci/tabulizer
+
