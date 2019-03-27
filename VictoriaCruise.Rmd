@@ -104,6 +104,7 @@ testtext_split[[1]][-(1:5)]          # removes range from list
 
 ```
 
+***
 
 ## Tidying the data
 
@@ -118,10 +119,13 @@ First, create a split version of the full file, using the same appoach we used e
 
 
 ```{r}
+
 vc_text_split <- str_split(vc_text, "\u000D\u000A")
+
 ```
 
-Now we have a list `vc_text_split` that has 10 items, each with multiple lists within it. 
+Now we have a list `vc_text_split` that has 10 items, each with multiple lists within it--a list of lists. 
+
 
 
 ### Remove superfluous rows
@@ -147,7 +151,7 @@ Page two and three differ from page one, having one less line before the variabl
 
 for (i in 2:10){
   print(
-  vc_text_split[[i]][1:4]
+  vc_text_split[[i]][1:5]
   )
 }
 
@@ -156,7 +160,7 @@ for (i in 2:10){
 ```
 
 
-And the bottom 4 rows is the closing details on the page. 
+And the bottom 3 or 4 rows have the page footer. 
 
 The last four rows of the page: 
 
@@ -168,24 +172,45 @@ The last four rows of the page:
 length(vc_text_split)
 
 last_x_line_fun <- function(vect, line_nums){
-  vic_vec_length <- length(vic_vec)
-  last_x_line <- vic_vec_length - x + 1
-  vc_text_split[[i]][last_x_line:vic_vec_length]
+  vec_length <- length(vect)
+  last_x_line <- vec_length - line_nums + 1
+  vect[last_x_line:vec_length]
 }
 
 i = 2
-last_x_line_fun(vc_text_split[i], 4)
+last_x_line_fun(vc_text_split[[i]], 4)
 
-for (i in 1:10){
+
+
+for (i in 1:2){
   print(
-  last_x_line_fun(vc_text_split[i], 4)
+  last_x_line_fun(vc_text_split[[i]], 4)
   )
 }
+
 
 
 ```
 
 
+So let's make a clean page one, and then pages 2 through 9.
+
+```{r}
+
+p01 <- vc_text_split[[1]][-(1:5)]          # removes range from list
+p01
+
+
+end_linestrip_fun <- function(vect, line_nums){
+  vic_vec_length <- length(vect)
+  last_x_line <- vic_vec_length - line_nums + 1
+  vect[-(last_x_line:vic_vec_length)]
+}
+
+p01 <- end_linestrip_fun(p01, 4)
+ 
+
+```
 
 
 
