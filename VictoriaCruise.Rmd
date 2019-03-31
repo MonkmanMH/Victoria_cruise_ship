@@ -132,21 +132,28 @@ Now we have a list `vc_text_split` that has 10 items, each with multiple lists w
 
 #### Headers
 
-We will start by looking at the first 6 rows of pages 1, 2, and 10 to compare their structure.
+We will start by looking at the first 6 rows of pages 1, 2, and 10 to compare their structure. First, page 1:
 
 ```{r}
 
 vc_text_split[[1]][1:6]   
-vc_text_split[[2]][1:6]
-vc_text_split[[10]][1:6]  
 
 ```
 
 Based on the first page, the first 5 rows are the header, and row 6 is the variable names. Let's see if that holds true for page two.
 
-Page two and three differ from page one, having one less line before the variable headings begin.
+```{r}
+vc_text_split[[2]][1:6]
 
-What about pages 2 through 10?
+print("---")
+vc_text_split[[10]][1:6]  
+
+```
+
+
+Page two and ten differ from page one, having one less line before the variable headings begin (perhaps they are not subject to change?)
+
+Another approach would be to use a `for` loop to see pages 2 through 10:
 
 ```{r}
 
@@ -155,6 +162,7 @@ for (i in 2:10){
   print(
   vc_text_split[[i]][1:5]
   )
+  print("----------")
 }
 
 
@@ -162,7 +170,9 @@ for (i in 2:10){
 ```
 
 
-A nice neat pattern. We can delete the material from the top of page one, and then loop through the remainder of the pages.
+A nice neat pattern. We can delete the five lines of material from the top of page one (which will leave the column headers), and then loop through the remainder of the pages--taking out five lines of material will be a benefit, since it will strip out the column headers.
+
+
 
 #### Footers
 
@@ -174,10 +184,7 @@ tail(vc_text_split[[1]])
 
 ```
 
-We can see that the last 4 rows have the footer, but it's hard for us to work with, since the original row indexes are lost...the new object is renumbered!
-
-
-The footers are in lines 11 through 14.
+We can see that the last 4 rows have the footer, but it's hard for us to see exactly which rows we're looking at, since the original row indexes are lost...the new object is renumbered! But that's ok, since we can use the row numbers relative to their position from the bottom.
 
 And pages two, three, and ten:
 
@@ -197,35 +204,22 @@ tail(vc_text_split[[10]])
 
 The page footer is four lines long on page two, as it was on page one--but page three differs, in having only three footer rows. And page ten is different again, with a seasonal summary and "Non Arrivals".
 
-It would be possible to sort out a programmatic solution to this, but the document is only 10 pages long, so I'm going to make a guess that it's going to be faster for me to do a visual check as to the number of footer rows, and then hard-code a length element to read into a function.
+It would be possible to sort out a programmatic solution to this, but the document is only 10 pages long, so I'm going to make the rash judgement that it's going to be faster for me to do a visual check as to the number of footer rows, and then hard-code a length element to read into a function, rather than trying to do it all programmatically. I'm not sure what my threshold would be--how many pages and how many seasons would I need to be dealing with before I wanted to write a generalized approach?
 
-One of the reasons for creating a function for the footer rows of the page is the length() and dplyr::last() functions don't support arithmetic. That is to say, `length(x) - 1` will return an error.
-
-```{r}
-
-length(vc_text_split) - 1
-
-```
-
-
+First, I'll write a function that uses the `length()` function to see how long a page is, then subtract how many lines are in the footer, and then add one back, since we are looking for the location. (For example, the four numbered items that end with #10 don't start at #6 (i.e. 10 - 4), but are 7, 8, 9, and 10; the starting point is 10 - 4 + 1 = 7.)
 
 ```{r}
-#
-#last_x_line_fun <- function(vect, line_nums){
-#  vec_length <- length(vect)
-#  last_x_line <- vec_length - line_nums + 1
-#  vect[last_x_line:vec_length]
-#}
 
 
-last_x_line_fun <- function(vect, line_nums){
-  last_x_line <- length(vect) - line_nums + 1
-  vect[last_x_line:(length(vect))]
+last_x_line_fun <- function(page, line_nums){
+  last_x_line <- length(page) - line_nums + 1
+  page[last_x_line:(length(page))]
 }
 
 p = 2
 last_x_line_fun(vc_text_split[[p]], 4)
 
+print("---------")
 p = 10
 last_x_line_fun(vc_text_split[[p]], 7)
 
@@ -233,13 +227,13 @@ last_x_line_fun(vc_text_split[[p]], 7)
 ```
 
 
-
+Will it loop?
 
 ```{r}
 
-for (i in 1:2){
+for (p in 1:2){
   print(
-  last_x_line_fun(vc_text_split[[i]], 4)
+  last_x_line_fun(vc_text_split[[p]], 4)
   )
 }
 
@@ -248,24 +242,45 @@ for (i in 1:2){
 ```
 
 
-So let's make a clean page one, and then pages 2 through 9.
+So let's make a clean page one, starting at the top. For this we simply take out rows 1 through 5, using the `-` sign in front of the row range. Our indexing looks like `[[1]][-(1:5)]`
 
 ```{r}
 
 p01 <- vc_text_split[[1]][-(1:5)]          # removes range from list
 p01
 
+```
+
+
+To strip out the last few rows, we will modify the function above that identifies the last few rows. 
+
+```{r}
 
 end_linestrip_fun <- function(vect, line_nums){
   vic_vec_length <- length(vect)
-  last_x_line <- vic_vec_length - line_nums + 1
-  vect[-(last_x_line:vic_vec_length)]
+  last_x_line <- length(vect) - line_nums
+  vect[(length(length(vect)):last_x_line)]
 }
 
-p01 <- end_linestrip_fun(p01, 4)
- 
+# a test using the first page
+end_linestrip_fun(vc_text_split[[1]], 4)
 
 ```
+
+
+Run the `end_linestrip_fun()` on the page one object we made earlier, `p01`
+
+```{r}
+
+p01 <- end_linestrip_fun(p01, 4)
+
+p01 
+
+```
+
+Nice!
+
+On to pages two through nine...first, the tops of each.
 
 
 
