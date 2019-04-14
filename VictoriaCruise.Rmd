@@ -224,16 +224,108 @@ page1_tbl <-
     ETA = str_sub(pagenum, 73, 78),
     ETD = str_sub(pagenum, 79, 83),
     to = str_sub(pagenum, 84, 97),
-    passenger_num = str_sub(pagenum, 98, 103),
+    passenger_count = str_sub(pagenum, 98, 103),
     cruise_line = str_sub(pagenum, 105, 126),
     lgth = str_sub(pagenum, 127, 133)
     ) 
 
 page1_tbl
 
+
 ```
 
-need to fix `length`
+
+
+```{r}
+
+
+pagenum <- page2
+
+page2_tbl <- 
+  tibble(
+    index = str_sub(pagenum, 1, 3),
+    dat = str_sub(pagenum, 4, 6),
+    mon = str_sub(pagenum, 8, 10),
+    day = str_sub(pagenum, 11, 14),
+    berth = str_sub(pagenum, 15, 22),
+    vessel = str_sub(pagenum, 23, 42),
+    from = str_sub(pagenum, 43, 57),
+    ETA = str_sub(pagenum, 58, 63),
+    ETD = str_sub(pagenum, 65, 70),
+    to = str_sub(pagenum, 71, 84),
+    passenger_count = str_sub(pagenum, 85, 90),
+    cruise_line = str_sub(pagenum, 91, 112),
+    lgth = str_sub(pagenum, 113, 133)
+    ) 
+
+page2_tbl
+
+```
+
+
+```{r}
+
+
+pagenum <- page3
+
+page3_tbl <- 
+  tibble(
+    index = str_sub(pagenum, 1, 3),
+    dat = str_sub(pagenum, 4, 6),
+    mon = str_sub(pagenum, 8, 10),
+    day = str_sub(pagenum, 11, 14),
+    berth = str_sub(pagenum, 15, 22),
+    vessel = str_sub(pagenum, 23, 42),
+    from = str_sub(pagenum, 43, 57),
+    ETA = str_sub(pagenum, 58, 63),
+    ETD = str_sub(pagenum, 65, 70),
+    to = str_sub(pagenum, 71, 84),
+    passenger_count = str_sub(pagenum, 85, 90),
+    cruise_line = str_sub(pagenum, 91, 112),
+    lgth = str_sub(pagenum, 113, 133)
+    ) 
+
+page3_tbl
+
+```
+
+
+```{r}
+
+
+pagenum <- page4
+
+page4_tbl <- 
+  tibble(
+    index = str_sub(pagenum, 1, 3),
+    dat = str_sub(pagenum, 4, 6),
+    mon = str_sub(pagenum, 8, 10),
+    day = str_sub(pagenum, 11, 14),
+    berth = str_sub(pagenum, 15, 22),
+    vessel = str_sub(pagenum, 23, 42),
+    from = str_sub(pagenum, 43, 57),
+    ETA = str_sub(pagenum, 58, 63),
+    ETD = str_sub(pagenum, 65, 70),
+    to = str_sub(pagenum, 71, 84),
+    passenger_count = str_sub(pagenum, 85, 90),
+    cruise_line = str_sub(pagenum, 91, 112),
+    lgth = str_sub(pagenum, 113, 133)
+    ) 
+
+page4_tbl
+
+```
+
+
+join the four pages into one
+
+```{r}
+
+vc_tbl <- 
+  bind_rows(page1_tbl, page2_tbl, page3_tbl, page4_tbl)
+
+```
+
 
 
 mutate assorted variables
@@ -243,10 +335,12 @@ mutate assorted variables
 # add an ISO 8601 date
 # lubridate::as_date
 
-page1_tbl %>%
+vc_tbl %>%
   mutate(
     index = as.integer(index),
-    YYYYMMDD = as_date(paste("2019", page1_tbl$mon, page1_tbl$dat, sep="-"))
+    passenger_count = as.integer(str_remove(passenger_count, ",")),
+    lgth = as.double(str_remove(lgth, " '")),
+    YYYYMMDD = as_date(paste("2019", vc_tbl$mon, vc_tbl$dat, sep="-"))
   )
 
 
