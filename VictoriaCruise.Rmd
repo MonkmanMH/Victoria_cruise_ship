@@ -23,9 +23,16 @@ https://ropensci.org/blog/2016/03/01/pdftools-and-jeroen/
 
 tabulizer
 
-```{r}
+```{r packages}
 
 library(pdftools)
+
+# tidyverse packages
+library(dplyr)
+library(glue)
+library(lubridate)
+library(stringr)
+library(tidyr)
 
 ```
 
@@ -61,10 +68,7 @@ Rather than look for the explicit text strings, we can use the function `regex("
 
 ```{r}
 
-library(stringr)
-library(tidyr)
-
-
+# stringr::str_detect
 str_detect(vc_text, regex("\u000D\u000A"))
 
 ```
@@ -126,9 +130,10 @@ We can use a `for` loop to see pages 2 through 4:
 
 ```{r}
 
+#glue::glue
 
 for (i in 1:4){
-  print(glue::glue("----------", "page ", i))
+  print(glue("----------", "page ", i))
   print(
   vc_text_split[[i]][1:5]
   )
@@ -150,7 +155,7 @@ What about the bottom of the pages? Here's a quick glance at the bottom of all t
 ```{r}
 
 for (i in 1:4){
-  print(glue::glue("----------", "page ", i))
+  print(glue("----------", "page ", i))
   print(
   tail(vc_text_split[[i]])
   )
@@ -186,13 +191,69 @@ Now, a loop of all four pages, creating a new object for each page:
 ```{r}
 
 for (p in 1:4){
-  assign(glue::glue("page", p), 
+  assign(glue("page", p), 
          last_x_line_fun(vc_text_split[[p]]))
 }
+
+# remove header row from page 1
+page1 <- page1[-1]
+
 
 ```
 
 
+
+### Step 2
+
+Split each row into variables.
+
+```{r}
+
+
+pagenum <- page1
+
+page1_tbl <- 
+  tibble(
+    index = str_sub(pagenum, 1, 3),
+    dat = str_sub(pagenum, 4, 5),
+    mon = str_sub(pagenum, 7, 9),
+    day = str_sub(pagenum, 10, 14),
+    berth = str_sub(pagenum, 15, 22),
+    vessel = str_sub(pagenum, 23, 50),
+    from = str_sub(pagenum, 51, 72),
+    ETA = str_sub(pagenum, 73, 78),
+    ETD = str_sub(pagenum, 79, 83),
+    to = str_sub(pagenum, 84, 97),
+    passenger_num = str_sub(pagenum, 98, 103),
+    cruise_line = str_sub(pagenum, 105, 126),
+    lgth = str_sub(pagenum, 127, 133)
+    ) 
+
+page1_tbl
+
+```
+
+need to fix `length`
+
+
+mutate assorted variables
+
+```{r}
+
+# add an ISO 8601 date
+# lubridate::as_date
+
+page1_tbl %>%
+  mutate(
+    index = as.integer(index),
+    YYYYMMDD = as_date(paste("2019", page1_tbl$mon, page1_tbl$dat, sep="-"))
+  )
+
+
+```
+
+
+Will it work for pages 2 - 4?!
 
 
 ### References
