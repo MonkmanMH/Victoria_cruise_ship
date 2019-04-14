@@ -9,9 +9,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Victoria Cruise schedule: http://www.victoriacruise.ca/cruise-schedule/current-season
+Victoria Cruise schedule: https://gvha.ca/cruise/cruise-schedule/ 
 
-Webpage can't sort of filter
+Webpage can't sort or filter
 
 The PDF file has more data (where the ship came from and its next port)
 
@@ -34,15 +34,15 @@ library(pdftools)
 
 ```{r}
 
-#download.file("http://www.victoriacruise.ca/sites/default/files/2019_ogden_point_cruise_schedule-03-21-2019.PDF",
-#              "victoriacruise_2019.PDF")
+#download.file("https://gvha.ca/wp-content/uploads/2019/04/2019-cruise-schedule-19-04-12.pdf",
+#                        "2019_cruise_schedule.pdf")
 
-vc_text <- pdf_text("2019_ogden_point_cruise_ship_schedule.PDF")
+vc_text <- pdf_text("2019-cruise-schedule-19-04-12.pdf")
 
 ```
 
 
-This creates an object `vc_text`, which is a list of 10 items--one for each page in the original PDF file. Let's look at page one:
+This creates an object `vc_text`, which is a list of 4 items--one for each page in the original PDF file. Let's look at page one:
 
 ```{r}
 
@@ -57,17 +57,15 @@ https://cran.r-project.org/web/packages/stringr/vignettes/stringr.html
 
 Since we are going to be looking for the string "\r\n" -- a combination of carriage return "\r" and line return "\n" -- we need to puzzle through how R uses regular expressions; https://cran.r-project.org/web/packages/stringr/vignettes/regular-expressions.html
 
-Rather than look for the explicit text strings, we can use the function `regex("\u000D\u000A")` will find both the carriage and line returns.
+Rather than look for the explicit text strings, we can use the function `regex("\u000D\u000A")` which will find the combination of both the carriage and line returns.
 
 ```{r}
 
 library(stringr)
 library(tidyr)
 
-testtext <- vc_text[1]
-testtext
 
-str_detect(testtext, regex("\u000D\u000A"))
+str_detect(vc_text, regex("\u000D\u000A"))
 
 ```
 
@@ -82,27 +80,8 @@ https://stackoverflow.com/questions/652136/how-can-i-remove-an-element-from-a-li
 
 
 
-Now that we've confirmed that we can find the carriage and line returns, we can split the page using `stringr::str_split()`, which results in one list per line. Our new object `texttext_split` is a list of lists...
-
 ...for more on how to parse these, see the chapter [Vectors](https://r4ds.had.co.nz/vectors.html) in the book [_R for Data Science_](https://r4ds.had.co.nz/) by Garrett Grolemund and Hadley Wickham.
 
-```{r}
-
-str_split(testtext, regex("\u000D\u000A"))
-
-# regex is the default -- can omit 
-testtext_split <- str_split(testtext, "\u000D\u000A")
-
-# use index to access specific rows
-testtext_split[1]                    # pulls list 
-testtext_split[[1]]                  # pulls all the items from the list
-testtext_split[[1]][1]               # pulls 1st item from list
-
-testtext_split[[1]][1:5]             # pulls range from list
-
-testtext_split[[1]][-(1:5)]          # removes range from list
-
-```
 
 ***
 
@@ -110,12 +89,13 @@ testtext_split[[1]][-(1:5)]          # removes range from list
 
 Our goal is a tidy data frame (or [tibble](https://tibble.tidyverse.org/)) with one observation (ship visit) per row, and the various characteristics of that visit (date, origin, etc.) in each column. At the moment, we've got two untidy aspects to deal with:
 
-- There is superfluous page header and footer material on each of the 10 PDF pages; this needs to be stripped out.
+- There is superfluous page header and footer material on each of the 4 PDF pages; this needs to be stripped out.
 
 - Each row is currently one list per line; these need to be separated into each of the variables.
 
 
-First, create a split version of the full file, using the same appoach we used earlier.
+First, create a split version of the full file, finding the carriage and line returns, and using that to split the page using `stringr::str_split()`, which results in one list per line. Our new object `vc_text_split` is a list of lists...
+
 
 
 ```{r}
@@ -124,7 +104,7 @@ vc_text_split <- str_split(vc_text, "\u000D\u000A")
 
 ```
 
-Now we have a list `vc_text_split` that has 10 items, each with multiple lists within it--a list of lists. 
+Now we have a list `vc_text_split` that has 4 items, each with multiple lists within it--a list of lists. 
 
 
 
@@ -140,29 +120,18 @@ vc_text_split[[1]][1:6]
 
 ```
 
-Based on the first page, the first 5 rows are the header, and row 6 is the variable names. Let's see if that holds true for page two.
+Based on the first page, the first 2 rows are the header, and row 3 is the variable names. Let's see if that holds true for page two.
 
-```{r}
-vc_text_split[[2]][1:6]
-
-print("---")
-vc_text_split[[10]][1:6]  
-
-```
-
-
-Page two and ten differ from page one, having one less line before the variable headings begin (perhaps they are not subject to change?)
-
-Another approach would be to use a `for` loop to see pages 2 through 10:
+We can use a `for` loop to see pages 2 through 4:
 
 ```{r}
 
 
-for (i in 2:10){
+for (i in 1:4){
+  print(glue::glue("----------", "page ", i))
   print(
   vc_text_split[[i]][1:5]
   )
-  print("----------")
 }
 
 
@@ -170,118 +139,58 @@ for (i in 2:10){
 ```
 
 
-A nice neat pattern. We can delete the five lines of material from the top of page one (which will leave the column headers), and then loop through the remainder of the pages--taking out five lines of material will be a benefit, since it will strip out the column headers.
+A nice neat pattern. The variable names appear at the top of page one, and are omitted the rest of the way through the document.
 
 
 
 #### Footers
 
-What about the bottom of the pages? A quick glance at the bottom of page one (using the `tail()` function) shows this:
+What about the bottom of the pages? Here's a quick glance at the bottom of all the pages, using the `tail()` function) shows this:
 
 ```{r}
 
-tail(vc_text_split[[1]])
-
-```
-
-We can see that the last 4 rows have the footer, but it's hard for us to see exactly which rows we're looking at, since the original row indexes are lost...the new object is renumbered! But that's ok, since we can use the row numbers relative to their position from the bottom.
-
-And pages two, three, and ten:
-
-```{r}
-
-print("---")
-tail(vc_text_split[[2]])
-
-print("---")
-tail(vc_text_split[[3]])
-
-print("---")
-tail(vc_text_split[[10]])
-
-```
-
-
-The page footer is four lines long on page two, as it was on page one--but page three differs, in having only three footer rows. And page ten is different again, with a seasonal summary and "Non Arrivals".
-
-It would be possible to sort out a programmatic solution to this, but the document is only 10 pages long, so I'm going to make the rash judgement that it's going to be faster for me to do a visual check as to the number of footer rows, and then hard-code a length element to read into a function, rather than trying to do it all programmatically. I'm not sure what my threshold would be--how many pages and how many seasons would I need to be dealing with before I wanted to write a generalized approach?
-
-First, I'll write a function that uses the `length()` function to see how long a page is, then subtract how many lines are in the footer, and then add one back, since we are looking for the location. (For example, the four numbered items that end with #10 don't start at #6 (i.e. 10 - 4), but are 7, 8, 9, and 10; the starting point is 10 - 4 + 1 = 7.)
-
-```{r}
-
-
-last_x_line_fun <- function(page, line_nums){
-  last_x_line <- length(page) - line_nums + 1
-  page[last_x_line:(length(page))]
-}
-
-p = 2
-last_x_line_fun(vc_text_split[[p]], 4)
-
-print("---------")
-p = 10
-last_x_line_fun(vc_text_split[[p]], 7)
-
-
-```
-
-
-Will it loop?
-
-```{r}
-
-for (p in 1:2){
+for (i in 1:4){
+  print(glue::glue("----------", "page ", i))
   print(
-  last_x_line_fun(vc_text_split[[p]], 4)
+  tail(vc_text_split[[i]])
   )
 }
 
-
-
 ```
 
+Each page has a blank row at the end, which will have to be deleted.
 
-So let's make a clean page one, starting at the top. For this we simply take out rows 1 through 5, using the `-` sign in front of the row range. Our indexing looks like `[[1]][-(1:5)]`
+
+### Step 1
+
+
+So let's make a clean page one. To do this, we can write a function that finds the last row (using `length`) and then omit it, using the `-` sign in front of our index.
+
+Here's the function, and a test of the first page.
 
 ```{r}
 
-p01 <- vc_text_split[[1]][-(1:5)]          # removes range from list
-p01
-
-```
-
-
-To strip out the last few rows, we will modify the function above that identifies the last few rows. 
-
-```{r}
-
-end_linestrip_fun <- function(vect, line_nums){
-  vic_vec_length <- length(vect)
-  last_x_line <- length(vect) - line_nums
-  vect[(length(length(vect)):last_x_line)]
+last_x_line_fun <- function(page_num){
+  last_x_line <- length(page_num)
+  page_num[-(last_x_line)]
 }
 
-# a test using the first page
-end_linestrip_fun(vc_text_split[[1]], 4)
+page_num = vc_text_split[[1]]
+
+tail(last_x_line_fun(page_num))
 
 ```
 
-
-Run the `end_linestrip_fun()` on the page one object we made earlier, `p01`
+Now, a loop of all four pages, creating a new object for each page:
 
 ```{r}
 
-p01 <- end_linestrip_fun(p01, 4)
-
-p01 
+for (p in 1:4){
+  assign(glue::glue("page", p), 
+         last_x_line_fun(vc_text_split[[p]]))
+}
 
 ```
-
-Nice!
-
-On to pages two through nine...first, the tops of each.
-
 
 
 
